@@ -6,14 +6,24 @@
   <meta name="renderer" content="webkit">
   <meta http-equiv="X-UA-Compatible" content="IE=edge" >
   <link rel="dns-prefetch" href="https://github.com/smilethemy/smilethemy.github.io">
-  <title>Archives: 2018 | Hexo</title>
+  <title>Redis并发锁 | Hexo</title>
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
-  <meta property="og:type" content="website">
-<meta property="og:title" content="Hexo">
-<meta property="og:url" content="https://github.com/smilethemy/smilethemy.github.io/archives/2018/index.html">
+  <meta name="description" content="Redis修改数据多线程并发—Redis并发锁其实说多线程修改数据也不合适，毕竟redis服务端是单线程的，所有命令串行执行，只是在客户端并发发送命令的时候，导致串行的命令一些排列问题和网络时间差等造成数据不一致。 先配上一个简易的RedisHelper，一个set值，一个get值，一个设置并发锁，以便在我后面的操作中，你能清楚我究竟做了什么。 public class RedisHelper {">
+<meta name="keywords" content="design">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Redis并发锁">
+<meta property="og:url" content="https://github.com/smilethemy/smilethemy.github.io/2018/01/23/Redis并发锁/index.html">
 <meta property="og:site_name" content="Hexo">
+<meta property="og:description" content="Redis修改数据多线程并发—Redis并发锁其实说多线程修改数据也不合适，毕竟redis服务端是单线程的，所有命令串行执行，只是在客户端并发发送命令的时候，导致串行的命令一些排列问题和网络时间差等造成数据不一致。 先配上一个简易的RedisHelper，一个set值，一个get值，一个设置并发锁，以便在我后面的操作中，你能清楚我究竟做了什么。 public class RedisHelper {">
+<meta property="og:image" content="https://github.com/img/redis_1.png">
+<meta property="og:image" content="https://github.com/smilethemy/smilethemy.github.io/2018/01/23/img/redis_1.png">
+<meta property="og:image" content="https://github.com/img/redis_2.png">
+<meta property="og:image" content="https://github.com/smilethemy/smilethemy.github.io/2018/01/23/img/redis_2.png">
+<meta property="og:updated_time" content="2018-01-25T04:40:53.000Z">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:title" content="Hexo">
+<meta name="twitter:title" content="Redis并发锁">
+<meta name="twitter:description" content="Redis修改数据多线程并发—Redis并发锁其实说多线程修改数据也不合适，毕竟redis服务端是单线程的，所有命令串行执行，只是在客户端并发发送命令的时候，导致串行的命令一些排列问题和网络时间差等造成数据不一致。 先配上一个简易的RedisHelper，一个set值，一个get值，一个设置并发锁，以便在我后面的操作中，你能清楚我究竟做了什么。 public class RedisHelper {">
+<meta name="twitter:image" content="https://github.com/img/redis_1.png">
   
     <link rel="alternative" href="/atom.xml" title="Hexo" type="application/atom+xml">
   
@@ -147,74 +157,110 @@
             <canvas data-colors="#eaeaea" data-sectionHeight="100" data-contentId="js-content" id="myCanvas1" class="anm-canvas"></canvas>
           </div>
           <div id="js-content" class="content-ll">
-            
-  
-  
+            <article id="post-Redis并发锁" class="article article-type-post " itemscope itemprop="blogPost">
+  <div class="article-inner">
     
+      <header class="article-header">
+        
+  
+    <h1 class="article-title" itemprop="name">
+      Redis并发锁
+    </h1>
+  
+
+        
+        <a href="/2018/01/23/Redis并发锁/" class="archive-article-date">
+  	<time datetime="2018-01-22T16:00:00.000Z" itemprop="datePublished"><i class="icon-calendar icon"></i>2018-01-23</time>
+</a>
+        
+      </header>
     
+    <div class="article-entry" itemprop="articleBody">
+      
+        <h1 id="Redis修改数据多线程并发—Redis并发锁"><a href="#Redis修改数据多线程并发—Redis并发锁" class="headerlink" title="Redis修改数据多线程并发—Redis并发锁"></a>Redis修改数据多线程并发—Redis并发锁</h1><p>其实说多线程修改数据也不合适，毕竟redis服务端是单线程的，所有命令串行执行，只是在客户端并发发送命令的时候，导致串行的命令一些排列问题和网络时间差等造成数据不一致。</p>
+<p>先配上一个简易的RedisHelper，一个set值，一个get值，一个设置并发锁，以便在我后面的操作中，你能清楚我究竟做了什么。</p>
+<pre><code>public class RedisHelper {
+        public RedisClient client = new RedisClient(&quot;127.0.0.1&quot;, 6379);
+        public void Set&lt;T&gt;(string key, T val){
+            client.Set(key, val);
+        }
+        public T Get&lt;T&gt;(string key){
+            var result = client.Get&lt;T&gt;(key);
+            return result;
+        }
+        public IDisposable Acquire(string key){
+           return  client.AcquireLock(key);
+        }
+    }
+</code></pre><p>下面看一下并发代码，我只new了两个Thread。两个线程同时想访问同一个key,分别访问五万次，在并发条件下，我们很难保证数据的准确性，请比较输出结果。</p>
+<pre><code>static void Main(string[] args) {
+            RedisHelper rds = new RedisHelper();
+            rds.Set&lt;int&gt;(&quot;mykey1&quot;, 0);
+            Thread myThread1 = new Thread(AddVal);
+            Thread myThread2 = new Thread(AddVal);
+            myThread1.Start();
+            myThread2.Start();
+            Console.WriteLine(&quot;等待两个线程结束&quot;);
+            Console.ReadKey();
+        }
+        public static void AddVal() {
+            RedisHelper rds = new RedisHelper();
+            for (int i = 0; i &lt; 50000; i++){
+                    int result = rds.Get&lt;int&gt;(&quot;mykey1&quot;);
+                    rds.Set&lt;int&gt;(&quot;mykey1&quot;, result + 1);
+            }
+            Console.WriteLine(&quot;线程结束，输出&quot; + rds.Get&lt;int&gt;(&quot;mykey1&quot;));
+        }
+</code></pre><p><img src="\img\redis_1.png" alt=""><br><img src="../img/redis_1.png" alt=""><br>是的，和我们单线程，跑两个50000,会输出100000。现在是两个并发线程同时跑在由于并发造成的数据结果往往不是我们想要的。那么如何解决这个问题呢，Redis已经为我们准备好了！</p>
+<p>你可以看到我RedisHelper中有个方法是 public IDisposable Acquire(string key)。  也可以看到他返回的是IDisposable，证明我们需要手动释放资源。方法内部的 AcquireLock正是关键之处，它向redis中索取一把锁头，<strong>被锁住的资源，只能被单个线程访问，不会被两个线程同时get或者set,这两个线程一定是交替着进行的，当然这里的交替并不是指你一次我一次，也可能是你多次，我一次</strong>，下面看代码。</p>
+<pre><code>static void Main(string[] args) {
+            RedisHelper rds = new RedisHelper();
+            rds.Set&lt;int&gt;(&quot;mykey1&quot;, 0);
+            Thread myThread1 = new Thread(AddVal);
+            Thread myThread2 = new Thread(AddVal);
+            myThread1.Start();
+            myThread2.Start();
+            Console.WriteLine(&quot;等待两个线程结束&quot;);
+            Console.ReadKey();
+        }
+        public static void AddVal() {
+            RedisHelper rds = new RedisHelper();
+            for (int i = 0; i &lt; 50000; i++) {
+                using (rds.Acquire(&quot;lock&quot;)) {
+                    int result = rds.Get&lt;int&gt;(&quot;mykey1&quot;);
+                    rds.Set&lt;int&gt;(&quot;mykey1&quot;, result + 1);
+                }
+            }
+            Console.WriteLine(&quot;线程结束，输出&quot; + rds.Get&lt;int&gt;(&quot;mykey1&quot;));
+        }
+</code></pre><p>可以看到我使用了using,调用我的Acquire方法获取锁。<br><img src="\img\redis_2.png" alt=""><br><img src="../img/redis_2.png" alt=""><br>输出结果最后是100000，正是我们要的正确结果。前面的8W+是因为两个线程之一先执行结束了。</p>
+<p>还有，在正式使用的过程中，建议给我们的锁，使用后删除掉，并加上一个过期时间，使用expire。</p>
+<p>以免程序执行期间意外退出，导致锁一直存在，今后可能无法更新或者获取此被锁住的数据。</p>
+<p>你也可以尝试一下不设置expire，在程序刚开始执行时，关闭console,重新运行程序，并且在redis-cli的操作控制台，get你锁住的值，将会永远获取不到。</p>
+<p>分布式锁，慎用：所有连接此redis实例的机器，同一时刻，只能有一个获取指定name的锁.</p>
+<p>下面是StackExchange.Redis的写法</p>
+<pre><code>var token = &quot;name-&quot;+Environment.MachineName;
+            //如果5秒不释放锁 自动释放。避免死锁
+            if (db.LockTake(&quot;name&quot;, token, TimeSpan.FromSeconds(5))) {
+                try {
+                    //do something
+                }
+                catch (Exception ex) {
+                    //log ex
+                    //throw;
+                } finally {
+                    //主动释放
+                    db.LockRelease(&quot;name&quot;, token);
+                }
+            }
+</code></pre>
+      
+
+      
+    </div>
+    <div class="article-info article-info-index">
       
       
-      <section class="archives-wrap">
-        <div class="archive-year-wrap">
-          <a href="/archives/2018" class="archive-year">2018</a>
-        </div>
-        <div class="archives">
-    
-    <article class="archive-article archive-type-post">
-  <div class="archive-article-inner">
-    <header class="archive-article-header">
-      	<div class="article-meta">
-	      	<a href="/2018/01/25/Spring自定义注解实现任务路由/" class="archive-article-date">
-  	<time datetime="2018-01-24T16:00:00.000Z" itemprop="datePublished"><i class="icon-calendar icon"></i>2018-01-25</time>
-</a>
-        </div>
-    	 
-  
-    <h1 itemprop="name">
-      <a class="archive-article-title" href="/2018/01/25/Spring自定义注解实现任务路由/">Spring自定义注解实现任务路由</a>
-    </h1>
-  
-
-        <div class="article-info info-on-right">
-          
-          
-	<div class="article-category tagcloud">
-		<i class="icon-book icon"></i>
-		<ul class="article-tag-list">
-			 
-        		<li class="article-tag-list-item">
-        			<a href="/categories/Spring-Boot//" class="article-tag-list-link color2">Spring Boot</a>
-        		</li>
-      		
-		</ul>
-	</div>
-
-
-        </div>
-        <div class="clearfix"></div>
-    </header>
-  </div>
-</article>
-  
-    
-    
-    <article class="archive-article archive-type-post">
-  <div class="archive-article-inner">
-    <header class="archive-article-header">
-      	<div class="article-meta">
-	      	<a href="/2018/01/24/Redis的pub-Sub/" class="archive-article-date">
-  	<time datetime="2018-01-23T16:00:00.000Z" itemprop="datePublished"><i class="icon-calendar icon"></i>2018-01-24</time>
-</a>
-        </div>
-    	 
-  
-    <h1 itemprop="name">
-      <a class="archive-article-title" href="/2018/01/24/Redis的pub-Sub/">Redis的pub/Sub</a>
-    </h1>
-  
-
-        <div class="article-info info-on-right">
-          
 	<div class="article-tag tagcloud">
 		<i class="icon-price-tags icon"></i>
 		<ul class="article-tag-list">
@@ -226,7 +272,7 @@
 		</ul>
 	</div>
 
-          
+      
 	<div class="article-category tagcloud">
 		<i class="icon-book icon"></i>
 		<ul class="article-tag-list">
@@ -239,376 +285,113 @@
 	</div>
 
 
+      
+
+      
+        
+<div class="share-btn share-icons tooltip-left">
+  <div class="tooltip tooltip-east">
+    <span class="tooltip-item">
+      <a href="javascript:;" class="share-sns share-outer">
+        <i class="icon icon-share"></i>
+      </a>
+    </span>
+    <span class="tooltip-content">
+      <div class="share-wrap">
+        <div class="share-icons">
+          <a class="weibo share-sns" href="javascript:;" data-type="weibo">
+            <i class="icon icon-weibo"></i>
+          </a>
+          <a class="weixin share-sns wxFab" href="javascript:;" data-type="weixin">
+            <i class="icon icon-weixin"></i>
+          </a>
+          <a class="qq share-sns" href="javascript:;" data-type="qq">
+            <i class="icon icon-qq"></i>
+          </a>
+          <a class="douban share-sns" href="javascript:;" data-type="douban">
+            <i class="icon icon-douban"></i>
+          </a>
+          <a class="qzone share-sns" href="javascript:;" data-type="qzone">
+            <i class="icon icon-qzone"></i>
+          </a>
+          <a class="facebook share-sns" href="javascript:;" data-type="facebook">
+            <i class="icon icon-facebook"></i>
+          </a>
+          <a class="twitter share-sns" href="javascript:;" data-type="twitter">
+            <i class="icon icon-twitter"></i>
+          </a>
+          <a class="google share-sns" href="javascript:;" data-type="google">
+            <i class="icon icon-google"></i>
+          </a>
         </div>
-        <div class="clearfix"></div>
-    </header>
+      </div>
+    </span>
+  </div>
+</div>
+
+<div class="page-modal wx-share js-wx-box">
+    <a class="close js-modal-close" href="javascript:;"><i class="icon icon-close"></i></a>
+    <p>扫一扫，分享到微信</p>
+    <div class="wx-qrcode">
+      <img src="//pan.baidu.com/share/qrcode?url=https://github.com/smilethemy/smilethemy.github.io/2018/01/23/Redis并发锁/" alt="微信分享二维码">
+    </div>
+</div>
+
+<div class="mask js-mask"></div>
+      
+      <div class="clearfix"></div>
+    </div>
   </div>
 </article>
+
   
-    
-    
-    <article class="archive-article archive-type-post">
-  <div class="archive-article-inner">
-    <header class="archive-article-header">
-      	<div class="article-meta">
-	      	<a href="/2018/01/23/JMS消息队列/" class="archive-article-date">
-  	<time datetime="2018-01-22T16:00:00.000Z" itemprop="datePublished"><i class="icon-calendar icon"></i>2018-01-23</time>
-</a>
+<nav id="article-nav">
+  
+    <a href="/2018/01/23/JMS消息队列/" id="article-nav-newer" class="article-nav-link-wrap">
+      <i class="icon-circle-left"></i>
+      <div class="article-nav-title">
+        
+          JMS消息队列
+        
+      </div>
+    </a>
+  
+  
+    <a href="/2018/01/23/Java虚拟机/" id="article-nav-older" class="article-nav-link-wrap">
+      <div class="article-nav-title">java虚拟机</div>
+      <i class="icon-circle-right"></i>
+    </a>
+  
+</nav>
+
+
+<aside class="wrap-side-operation">
+    <div class="mod-side-operation">
+        
+        <div class="jump-container" id="js-jump-container" style="display:none;">
+            <a href="javascript:void(0)" class="mod-side-operation__jump-to-top">
+                <i class="icon-font icon-back"></i>
+            </a>
+            <div id="js-jump-plan-container" class="jump-plan-container" style="top: -11px;">
+                <i class="icon-font icon-plane jump-plane"></i>
+            </div>
         </div>
-    	 
-  
-    <h1 itemprop="name">
-      <a class="archive-article-title" href="/2018/01/23/JMS消息队列/">JMS消息队列</a>
-    </h1>
-  
-
-        <div class="article-info info-on-right">
-          
-	<div class="article-tag tagcloud">
-		<i class="icon-price-tags icon"></i>
-		<ul class="article-tag-list">
-			 
-        		<li class="article-tag-list-item">
-        			<a href="javascript:void(0)" class="js-tag article-tag-list-link color2">design</a>
-        		</li>
-      		
-		</ul>
-	</div>
-
-          
-	<div class="article-category tagcloud">
-		<i class="icon-book icon"></i>
-		<ul class="article-tag-list">
-			 
-        		<li class="article-tag-list-item">
-        			<a href="/categories/java//" class="article-tag-list-link color5">java</a>
-        		</li>
-      		
-		</ul>
-	</div>
+        
+        
+    </div>
+</aside>
 
 
-        </div>
-        <div class="clearfix"></div>
-    </header>
-  </div>
-</article>
-  
-    
-    
-    <article class="archive-article archive-type-post">
-  <div class="archive-article-inner">
-    <header class="archive-article-header">
-      	<div class="article-meta">
-	      	<a href="/2018/01/23/Redis并发锁/" class="archive-article-date">
-  	<time datetime="2018-01-22T16:00:00.000Z" itemprop="datePublished"><i class="icon-calendar icon"></i>2018-01-23</time>
-</a>
-        </div>
-    	 
-  
-    <h1 itemprop="name">
-      <a class="archive-article-title" href="/2018/01/23/Redis并发锁/">Redis并发锁</a>
-    </h1>
-  
 
-        <div class="article-info info-on-right">
-          
-	<div class="article-tag tagcloud">
-		<i class="icon-price-tags icon"></i>
-		<ul class="article-tag-list">
-			 
-        		<li class="article-tag-list-item">
-        			<a href="javascript:void(0)" class="js-tag article-tag-list-link color2">design</a>
-        		</li>
-      		
-		</ul>
-	</div>
-
-          
-	<div class="article-category tagcloud">
-		<i class="icon-book icon"></i>
-		<ul class="article-tag-list">
-			 
-        		<li class="article-tag-list-item">
-        			<a href="/categories/java//" class="article-tag-list-link color5">java</a>
-        		</li>
-      		
-		</ul>
-	</div>
-
-
-        </div>
-        <div class="clearfix"></div>
-    </header>
-  </div>
-</article>
-  
-    
-    
-    <article class="archive-article archive-type-post">
-  <div class="archive-article-inner">
-    <header class="archive-article-header">
-      	<div class="article-meta">
-	      	<a href="/2018/01/23/Java虚拟机/" class="archive-article-date">
-  	<time datetime="2018-01-22T16:00:00.000Z" itemprop="datePublished"><i class="icon-calendar icon"></i>2018-01-23</time>
-</a>
-        </div>
-    	 
-  
-    <h1 itemprop="name">
-      <a class="archive-article-title" href="/2018/01/23/Java虚拟机/">java虚拟机</a>
-    </h1>
-  
-
-        <div class="article-info info-on-right">
-          
-	<div class="article-tag tagcloud">
-		<i class="icon-price-tags icon"></i>
-		<ul class="article-tag-list">
-			 
-        		<li class="article-tag-list-item">
-        			<a href="javascript:void(0)" class="js-tag article-tag-list-link color2">design</a>
-        		</li>
-      		
-		</ul>
-	</div>
-
-          
-	<div class="article-category tagcloud">
-		<i class="icon-book icon"></i>
-		<ul class="article-tag-list">
-			 
-        		<li class="article-tag-list-item">
-        			<a href="/categories/java//" class="article-tag-list-link color5">java</a>
-        		</li>
-      		
-		</ul>
-	</div>
-
-
-        </div>
-        <div class="clearfix"></div>
-    </header>
-  </div>
-</article>
-  
-    
-    
-    <article class="archive-article archive-type-post">
-  <div class="archive-article-inner">
-    <header class="archive-article-header">
-      	<div class="article-meta">
-	      	<a href="/2018/01/19/SKU多维属性状态判断算法/" class="archive-article-date">
-  	<time datetime="2018-01-18T16:00:00.000Z" itemprop="datePublished"><i class="icon-calendar icon"></i>2018-01-19</time>
-</a>
-        </div>
-    	 
-  
-    <h1 itemprop="name">
-      <a class="archive-article-title" href="/2018/01/19/SKU多维属性状态判断算法/">SKU多维属性状态判断算法</a>
-    </h1>
-  
-
-        <div class="article-info info-on-right">
-          
-	<div class="article-tag tagcloud">
-		<i class="icon-price-tags icon"></i>
-		<ul class="article-tag-list">
-			 
-        		<li class="article-tag-list-item">
-        			<a href="javascript:void(0)" class="js-tag article-tag-list-link color2">design</a>
-        		</li>
-      		
-		</ul>
-	</div>
-
-          
-	<div class="article-category tagcloud">
-		<i class="icon-book icon"></i>
-		<ul class="article-tag-list">
-			 
-        		<li class="article-tag-list-item">
-        			<a href="/categories/java//" class="article-tag-list-link color5">java</a>
-        		</li>
-      		
-		</ul>
-	</div>
-
-
-        </div>
-        <div class="clearfix"></div>
-    </header>
-  </div>
-</article>
-  
-    
-    
-    <article class="archive-article archive-type-post">
-  <div class="archive-article-inner">
-    <header class="archive-article-header">
-      	<div class="article-meta">
-	      	<a href="/2018/01/16/SOA与微服务/" class="archive-article-date">
-  	<time datetime="2018-01-15T16:00:00.000Z" itemprop="datePublished"><i class="icon-calendar icon"></i>2018-01-16</time>
-</a>
-        </div>
-    	 
-  
-    <h1 itemprop="name">
-      <a class="archive-article-title" href="/2018/01/16/SOA与微服务/">SOA与微服务</a>
-    </h1>
-  
-
-        <div class="article-info info-on-right">
-          
-	<div class="article-tag tagcloud">
-		<i class="icon-price-tags icon"></i>
-		<ul class="article-tag-list">
-			 
-        		<li class="article-tag-list-item">
-        			<a href="javascript:void(0)" class="js-tag article-tag-list-link color4">SOA</a>
-        		</li>
-      		
-		</ul>
-	</div>
-
-          
-
-        </div>
-        <div class="clearfix"></div>
-    </header>
-  </div>
-</article>
-  
-    
-    
-    <article class="archive-article archive-type-post">
-  <div class="archive-article-inner">
-    <header class="archive-article-header">
-      	<div class="article-meta">
-	      	<a href="/2018/01/12/springcloud eureka 服务注册与发现 - 副本/" class="archive-article-date">
-  	<time datetime="2018-01-11T16:00:00.000Z" itemprop="datePublished"><i class="icon-calendar icon"></i>2018-01-12</time>
-</a>
-        </div>
-    	 
-  
-    <h1 itemprop="name">
-      <a class="archive-article-title" href="/2018/01/12/springcloud eureka 服务注册与发现 - 副本/">springcloud eureka 服务注册与发现</a>
-    </h1>
-  
-
-        <div class="article-info info-on-right">
-          
-	<div class="article-tag tagcloud">
-		<i class="icon-price-tags icon"></i>
-		<ul class="article-tag-list">
-			 
-        		<li class="article-tag-list-item">
-        			<a href="javascript:void(0)" class="js-tag article-tag-list-link color2">springcloud</a>
-        		</li>
-      		
-		</ul>
-	</div>
-
-          
-	<div class="article-category tagcloud">
-		<i class="icon-book icon"></i>
-		<ul class="article-tag-list">
-			 
-        		<li class="article-tag-list-item">
-        			<a href="/categories/Spring-Boot//" class="article-tag-list-link color2">Spring Boot</a>
-        		</li>
-      		
-		</ul>
-	</div>
-
-
-        </div>
-        <div class="clearfix"></div>
-    </header>
-  </div>
-</article>
-  
-    
-    
-    <article class="archive-article archive-type-post">
-  <div class="archive-article-inner">
-    <header class="archive-article-header">
-      	<div class="article-meta">
-	      	<a href="/2018/01/12/springcloud eureka 服务注册与发现/" class="archive-article-date">
-  	<time datetime="2018-01-11T16:00:00.000Z" itemprop="datePublished"><i class="icon-calendar icon"></i>2018-01-12</time>
-</a>
-        </div>
-    	 
-  
-    <h1 itemprop="name">
-      <a class="archive-article-title" href="/2018/01/12/springcloud eureka 服务注册与发现/">springcloud eureka 服务注册与发现</a>
-    </h1>
-  
-
-        <div class="article-info info-on-right">
-          
-	<div class="article-tag tagcloud">
-		<i class="icon-price-tags icon"></i>
-		<ul class="article-tag-list">
-			 
-        		<li class="article-tag-list-item">
-        			<a href="javascript:void(0)" class="js-tag article-tag-list-link color2">springcloud</a>
-        		</li>
-      		
-		</ul>
-	</div>
-
-          
-	<div class="article-category tagcloud">
-		<i class="icon-book icon"></i>
-		<ul class="article-tag-list">
-			 
-        		<li class="article-tag-list-item">
-        			<a href="/categories/Spring-Boot//" class="article-tag-list-link color2">Spring Boot</a>
-        		</li>
-      		
-		</ul>
-	</div>
-
-
-        </div>
-        <div class="clearfix"></div>
-    </header>
-  </div>
-</article>
-  
-    
-    
-    <article class="archive-article archive-type-post">
-  <div class="archive-article-inner">
-    <header class="archive-article-header">
-      	<div class="article-meta">
-	      	<a href="/2018/01/11/hello-world/" class="archive-article-date">
-  	<time datetime="2018-01-11T07:16:48.602Z" itemprop="datePublished"><i class="icon-calendar icon"></i>2018-01-11</time>
-</a>
-        </div>
-    	 
-  
-    <h1 itemprop="name">
-      <a class="archive-article-title" href="/2018/01/11/hello-world/">Hello World</a>
-    </h1>
-  
-
-        <div class="article-info info-on-right">
-          
-          
-
-        </div>
-        <div class="clearfix"></div>
-    </header>
-  </div>
-</article>
   
   
-    </div></section>
   
 
-    
+  
+
+  
+
+  
 
 
           </div>
@@ -631,8 +414,8 @@
 	var yiliaConfig = {
 		mathjax: true,
 		isHome: false,
-		isPost: false,
-		isArchive: true,
+		isPost: true,
+		isArchive: false,
 		isTag: false,
 		isCategory: false,
 		open_in_new: false,

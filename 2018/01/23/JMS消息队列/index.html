@@ -6,14 +6,24 @@
   <meta name="renderer" content="webkit">
   <meta http-equiv="X-UA-Compatible" content="IE=edge" >
   <link rel="dns-prefetch" href="https://github.com/smilethemy/smilethemy.github.io">
-  <title>Archives: 2018 | Hexo</title>
+  <title>JMS消息队列 | Hexo</title>
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
-  <meta property="og:type" content="website">
-<meta property="og:title" content="Hexo">
-<meta property="og:url" content="https://github.com/smilethemy/smilethemy.github.io/archives/2018/index.html">
+  <meta name="description" content="JMS(Java Messaging Service)是java平台上有关面向消息中间件的技术规范，它便于消息系统中的java应用程序进行消息交换，并且通过提供标准的产生、发送、接收消息的接口简化企业应用的开发 JMS类似JDBC，sun提供接口，由各个厂商（provider）来进行实现，市面上众多成熟的JMS规范实现的框架Kafk,rabbitMQ，activeMQ，zeroMQ，rocketM">
+<meta name="keywords" content="design">
+<meta property="og:type" content="article">
+<meta property="og:title" content="JMS消息队列">
+<meta property="og:url" content="https://github.com/smilethemy/smilethemy.github.io/2018/01/23/JMS消息队列/index.html">
 <meta property="og:site_name" content="Hexo">
+<meta property="og:description" content="JMS(Java Messaging Service)是java平台上有关面向消息中间件的技术规范，它便于消息系统中的java应用程序进行消息交换，并且通过提供标准的产生、发送、接收消息的接口简化企业应用的开发 JMS类似JDBC，sun提供接口，由各个厂商（provider）来进行实现，市面上众多成熟的JMS规范实现的框架Kafk,rabbitMQ，activeMQ，zeroMQ，rocketM">
+<meta property="og:image" content="https://github.com/img/20161211174534592.png">
+<meta property="og:image" content="https://github.com/smilethemy/smilethemy.github.io/2018/01/23/img/20161211174534592.png">
+<meta property="og:image" content="https://github.com/img/20161211174552910.png">
+<meta property="og:image" content="https://github.com/smilethemy/smilethemy.github.io/2018/01/23/img/20161211174552910.png">
+<meta property="og:updated_time" content="2018-01-25T04:41:14.000Z">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:title" content="Hexo">
+<meta name="twitter:title" content="JMS消息队列">
+<meta name="twitter:description" content="JMS(Java Messaging Service)是java平台上有关面向消息中间件的技术规范，它便于消息系统中的java应用程序进行消息交换，并且通过提供标准的产生、发送、接收消息的接口简化企业应用的开发 JMS类似JDBC，sun提供接口，由各个厂商（provider）来进行实现，市面上众多成熟的JMS规范实现的框架Kafk,rabbitMQ，activeMQ，zeroMQ，rocketM">
+<meta name="twitter:image" content="https://github.com/img/20161211174534592.png">
   
     <link rel="alternative" href="/atom.xml" title="Hexo" type="application/atom+xml">
   
@@ -147,74 +157,186 @@
             <canvas data-colors="#eaeaea" data-sectionHeight="100" data-contentId="js-content" id="myCanvas1" class="anm-canvas"></canvas>
           </div>
           <div id="js-content" class="content-ll">
-            
-  
-  
+            <article id="post-JMS消息队列" class="article article-type-post " itemscope itemprop="blogPost">
+  <div class="article-inner">
     
+      <header class="article-header">
+        
+  
+    <h1 class="article-title" itemprop="name">
+      JMS消息队列
+    </h1>
+  
+
+        
+        <a href="/2018/01/23/JMS消息队列/" class="archive-article-date">
+  	<time datetime="2018-01-22T16:00:00.000Z" itemprop="datePublished"><i class="icon-calendar icon"></i>2018-01-23</time>
+</a>
+        
+      </header>
     
+    <div class="article-entry" itemprop="articleBody">
+      
+        <p>JMS(Java Messaging Service)是java平台上有关面向消息中间件的技术规范，它便于消息系统中的java应用程序进行消息交换，并且通过提供标准的产生、发送、接收消息的接口简化企业应用的开发</p>
+<p>JMS类似JDBC，sun提供接口，由各个厂商（provider）来进行实现，市面上众多成熟的JMS规范实现的框架Kafk,rabbitMQ，activeMQ，zeroMQ，rocketMQ等</p>
+<p>JMS的队列消息（Queue）传递过程如图所示<br><img src="\img\20161211174534592.png" alt=""><br><img src="../img/20161211174534592.png" alt=""></p>
+<p><strong>对于queue模式，一个发布者发布消息，下面的接收者按队列顺序接收，比如发布了10个消息，两个接收者A、B，那就是A、B总共会收到10条消息，不重复</strong></p>
+<p>JMS的主题消息（topic）传递过程如图所示<br><img src="\img\20161211174552910.png" alt=""><br><img src="../img/20161211174552910.png" alt=""></p>
+<p><strong>对于topic模式，一个发布者发布消息，有两个接收者A、B来订阅，那么发布了10条消息，A、B各收到10条消息</strong></p>
+<p>代码示例如下</p>
+<h3 id="Queue模式实践"><a href="#Queue模式实践" class="headerlink" title="Queue模式实践:"></a>Queue模式实践:</h3><p><strong>消息生产者:</strong></p>
+<pre><code>public class Sender {  
+    public static void main(String[] args) throws JMSException, InterruptedException {  
+        // ConnectionFactory ：连接工厂，JMS 用它创建连接  
+        //61616是ActiveMQ默认端口
+        ConnectionFactory connectionFactory = new ActiveMQConnectionFactory(  
+                                                  ActiveMQConnection.DEFAULT_USER,  
+                                                  ActiveMQConnection.DEFAULT_PASSWORD,  
+                                                  &quot;tcp://localhost:61616&quot;);  
+        // Connection ：JMS 客户端到JMS Provider 的连接  
+        Connection connection =  connectionFactory.createConnection();  
+        connection.start();  
+        // Session： 一个发送或接收消息的线程  
+        Session session = connection.createSession(true, Session.AUTO_ACKNOWLEDGE);  
+        // Destination ：消息的目的地;消息发送给谁.  
+        Destination destination =  session.createQueue(&quot;my-queue&quot;);  
+        // MessageProducer：消息发送者  
+        MessageProducer producer =  session.createProducer(destination);  
+        // 设置不持久化，可以更改  
+        producer.setDeliveryMode(DeliveryMode.NON_PERSISTENT);  
+        for(int i=0;i&lt;10;i++){  
+            //创建文本消息  
+            TextMessage message = session.createTextMessage(&quot;hello.I am producer, this is a test message&quot;+i);  
+            Thread.sleep(1000);  
+            //发送消息  
+            producer.send(message);  
+        }  
+        session.commit();  
+        session.close();  
+        connection.close();  
+    }  
+}  
+</code></pre><p><strong>消息接收者</strong></p>
+<pre><code>// ConnectionFactory ：连接工厂，JMS 用它创建连接  
+   private static ConnectionFactory connectionFactory = new ActiveMQConnectionFactory(ActiveMQConnection.DEFAULT_USER,  
+           ActiveMQConnection.DEFAULT_PASSWORD, &quot;tcp://localhost:61616&quot;);  
+   public static void main(String[] args) throws JMSException {  
+        // Connection ：JMS 客户端到JMS Provider 的连接  
+        final Connection connection =  connectionFactory.createConnection();  
+        connection.start();  
+        // Session： 一个发送或接收消息的线程  
+        final Session session = connection.createSession(true, Session.AUTO_ACKNOWLEDGE);  
+        // Destination ：消息的目的地;消息送谁那获取.  
+        Destination destination =  session.createQueue(&quot;my-queue&quot;);  
+        // 消费者，消息接收者  
+        MessageConsumer consumer1 =  session.createConsumer(destination);  
+        consumer1.setMessageListener(new MessageListener() {  
+                @Override  
+                public void onMessage(Message msg) {  
+                    try {  
+
+                        TextMessage message = (TextMessage)msg ;  
+                        System.out.println(&quot;consumerOne收到消息： &quot;+message.getText());  
+                        session.commit();  
+                    } catch (JMSException e) {                
+                        e.printStackTrace();  
+                    }  
+                }  
+            });  
+}  
+</code></pre><p>运行之后控制台不会退出一直监听消息库，对于消息发送者的十条信息，控制输出：</p>
+<blockquote>
+<p>consumerOne收到消息： hello.I am producer, this is a test message0<br>consumerOne收到消息： hello.I am producer, this is a test message1<br>consumerOne收到消息： hello.I am producer, this is a test message2<br>consumerOne收到消息： hello.I am producer, this is a test message3<br>consumerOne收到消息： hello.I am producer, this is a test message4<br>consumerOne收到消息： hello.I am producer, this is a test message5<br>consumerOne收到消息： hello.I am producer, this is a test message6<br>consumerOne收到消息： hello.I am producer, this is a test message7<br>consumerOne收到消息： hello.I am producer, this is a test message8<br>consumerOne收到消息： hello.I am producer, this is a test message9 </p>
+</blockquote>
+<p><strong>如果此时另外一个线程也存在消费者监听该Queue，则两者交换输出，共输出10条</strong></p>
+<h3 id="Topic模式实现"><a href="#Topic模式实现" class="headerlink" title="Topic模式实现"></a>Topic模式实现</h3><p><strong>消息发布者</strong></p>
+<pre><code>public static void main(String[] args) throws JMSException, InterruptedException {
+        // ConnectionFactory ：连接工厂，JMS 用它创建连接  
+        //61616是ActiveMQ默认端口
+        ConnectionFactory connectionFactory = new ActiveMQConnectionFactory(  
+                                                  ActiveMQConnection.DEFAULT_USER,  
+                                                  ActiveMQConnection.DEFAULT_PASSWORD,  
+                                                  &quot;tcp://localhost:61616&quot;);  
+        // Connection ：JMS 客户端到JMS Provider 的连接  
+        Connection connection =  connectionFactory.createConnection();  
+        connection.start();  
+        // Session： 一个发送或接收消息的线程  
+        Session session = connection.createSession(true, Session.AUTO_ACKNOWLEDGE);  
+        // Destination ：消息的目的地;消息发送给谁.  
+        //Destination destination =  session.createQueue(&quot;my-queue&quot;);  
+        Destination destination = session.createTopic(&quot;STOCKS.myTopic&quot;); //创建topic   myTopic
+        // MessageProducer：消息发送者  
+        MessageProducer producer =  session.createProducer(destination);  
+        // 设置不持久化，可以更改  
+        producer.setDeliveryMode(DeliveryMode.NON_PERSISTENT);  
+        for(int i=0;i&lt;10;i++){  
+            //创建文本消息  
+            TextMessage message = session.createTextMessage(&quot;hello.I am producer, this is a test message&quot;+i);  
+            //发送消息  
+            producer.send(message);  
+        }  
+        session.commit();  
+        session.close();  
+        connection.close();
+    }  
+</code></pre><p><strong>消息订阅者</strong></p>
+<pre><code>private static ConnectionFactory connectionFactory = new ActiveMQConnectionFactory(ActiveMQConnection.DEFAULT_USER,
+            ActiveMQConnection.DEFAULT_PASSWORD, &quot;tcp://localhost:61616&quot;);
+    public void run() {
+        // Connection ：JMS 客户端到JMS Provider 的连接
+        try {
+            final Connection connection = connectionFactory.createConnection();
+            connection.start();
+            // Session： 一个发送或接收消息的线程
+            final Session session = connection.createSession(true, Session.AUTO_ACKNOWLEDGE);
+            // Destination ：消息的目的地;消息送谁那获取.
+            // Destination destination = session.createQueue(&quot;my-queue&quot;);
+            Destination destination = session.createTopic(&quot;STOCKS.myTopic&quot;); // 创建topic// myTopic
+            // 消费者，消息接收者
+            MessageConsumer consumer1 = session.createConsumer(destination);
+            consumer1.setMessageListener(new MessageListener() {
+                public void onMessage(Message msg) {
+                    try {
+                        TextMessage message = (TextMessage) msg;
+                        System.out.println(&quot;consumerOne收到消息： &quot; + message.getText());
+                        session.commit();
+                    } catch (JMSException e) {
+                        e.printStackTrace();
+                    }
+                }
+            });
+            // 再来一个消费者，消息接收者
+            MessageConsumer consumer2 = session.createConsumer(destination);
+            consumer2.setMessageListener(new MessageListener() {
+                public void onMessage(Message msg) {
+                    try {
+                        TextMessage message = (TextMessage) msg;
+                        System.out.println(&quot;consumerTwo收到消息： &quot; + message.getText());
+                        session.commit();
+                    } catch (JMSException e) {
+                        e.printStackTrace();
+                    }
+                }
+            });
+        } catch (Exception e) {
+        }
+    }
+</code></pre><p>最后消息会重复输出: </p>
+<blockquote>
+<p>consumerOne收到消息： hello.I am producer, this is a test message0<br>consumerTwo收到消息： hello.I am producer, this is a test message0<br>consumerOne收到消息： hello.I am producer, this is a test message1<br>consumerTwo收到消息： hello.I am producer, this is a test message1<br>consumerOne收到消息： hello.I am producer, this is a test message2<br>consumerTwo收到消息： hello.I am producer, this is a test message2<br>consumerOne收到消息： hello.I am producer, this is a test message3<br>consumerTwo收到消息： hello.I am producer, this is a test message3<br>consumerOne收到消息： hello.I am producer, this is a test message4<br>consumerTwo收到消息： hello.I am producer, this is a test message4<br>consumerOne收到消息： hello.I am producer, this is a test message5<br>consumerTwo收到消息： hello.I am producer, this is a test message5<br>consumerOne收到消息： hello.I am producer, this is a test message6<br>consumerTwo收到消息： hello.I am producer, this is a test message6<br>consumerOne收到消息： hello.I am producer, this is a test message7<br>consumerTwo收到消息： hello.I am producer, this is a test message7<br>consumerOne收到消息： hello.I am producer, this is a test message8<br>consumerTwo收到消息： hello.I am producer, this is a test message8<br>consumerOne收到消息： hello.I am producer, this is a test message9<br>consumerTwo收到消息： hello.I am producer, this is a test message9</p>
+</blockquote>
+<p>我们简单总结一下使用MQ的过程:</p>
+<blockquote>
+<p>1.创建与MQ的链接<br>2.创建消息的目的地或者来原地即Destination<br>3.发送消息或者制定对应的MessageListener</p>
+</blockquote>
+
+      
+
+      
+    </div>
+    <div class="article-info article-info-index">
       
       
-      <section class="archives-wrap">
-        <div class="archive-year-wrap">
-          <a href="/archives/2018" class="archive-year">2018</a>
-        </div>
-        <div class="archives">
-    
-    <article class="archive-article archive-type-post">
-  <div class="archive-article-inner">
-    <header class="archive-article-header">
-      	<div class="article-meta">
-	      	<a href="/2018/01/25/Spring自定义注解实现任务路由/" class="archive-article-date">
-  	<time datetime="2018-01-24T16:00:00.000Z" itemprop="datePublished"><i class="icon-calendar icon"></i>2018-01-25</time>
-</a>
-        </div>
-    	 
-  
-    <h1 itemprop="name">
-      <a class="archive-article-title" href="/2018/01/25/Spring自定义注解实现任务路由/">Spring自定义注解实现任务路由</a>
-    </h1>
-  
-
-        <div class="article-info info-on-right">
-          
-          
-	<div class="article-category tagcloud">
-		<i class="icon-book icon"></i>
-		<ul class="article-tag-list">
-			 
-        		<li class="article-tag-list-item">
-        			<a href="/categories/Spring-Boot//" class="article-tag-list-link color2">Spring Boot</a>
-        		</li>
-      		
-		</ul>
-	</div>
-
-
-        </div>
-        <div class="clearfix"></div>
-    </header>
-  </div>
-</article>
-  
-    
-    
-    <article class="archive-article archive-type-post">
-  <div class="archive-article-inner">
-    <header class="archive-article-header">
-      	<div class="article-meta">
-	      	<a href="/2018/01/24/Redis的pub-Sub/" class="archive-article-date">
-  	<time datetime="2018-01-23T16:00:00.000Z" itemprop="datePublished"><i class="icon-calendar icon"></i>2018-01-24</time>
-</a>
-        </div>
-    	 
-  
-    <h1 itemprop="name">
-      <a class="archive-article-title" href="/2018/01/24/Redis的pub-Sub/">Redis的pub/Sub</a>
-    </h1>
-  
-
-        <div class="article-info info-on-right">
-          
 	<div class="article-tag tagcloud">
 		<i class="icon-price-tags icon"></i>
 		<ul class="article-tag-list">
@@ -226,7 +348,7 @@
 		</ul>
 	</div>
 
-          
+      
 	<div class="article-category tagcloud">
 		<i class="icon-book icon"></i>
 		<ul class="article-tag-list">
@@ -239,376 +361,113 @@
 	</div>
 
 
+      
+
+      
+        
+<div class="share-btn share-icons tooltip-left">
+  <div class="tooltip tooltip-east">
+    <span class="tooltip-item">
+      <a href="javascript:;" class="share-sns share-outer">
+        <i class="icon icon-share"></i>
+      </a>
+    </span>
+    <span class="tooltip-content">
+      <div class="share-wrap">
+        <div class="share-icons">
+          <a class="weibo share-sns" href="javascript:;" data-type="weibo">
+            <i class="icon icon-weibo"></i>
+          </a>
+          <a class="weixin share-sns wxFab" href="javascript:;" data-type="weixin">
+            <i class="icon icon-weixin"></i>
+          </a>
+          <a class="qq share-sns" href="javascript:;" data-type="qq">
+            <i class="icon icon-qq"></i>
+          </a>
+          <a class="douban share-sns" href="javascript:;" data-type="douban">
+            <i class="icon icon-douban"></i>
+          </a>
+          <a class="qzone share-sns" href="javascript:;" data-type="qzone">
+            <i class="icon icon-qzone"></i>
+          </a>
+          <a class="facebook share-sns" href="javascript:;" data-type="facebook">
+            <i class="icon icon-facebook"></i>
+          </a>
+          <a class="twitter share-sns" href="javascript:;" data-type="twitter">
+            <i class="icon icon-twitter"></i>
+          </a>
+          <a class="google share-sns" href="javascript:;" data-type="google">
+            <i class="icon icon-google"></i>
+          </a>
         </div>
-        <div class="clearfix"></div>
-    </header>
+      </div>
+    </span>
+  </div>
+</div>
+
+<div class="page-modal wx-share js-wx-box">
+    <a class="close js-modal-close" href="javascript:;"><i class="icon icon-close"></i></a>
+    <p>扫一扫，分享到微信</p>
+    <div class="wx-qrcode">
+      <img src="//pan.baidu.com/share/qrcode?url=https://github.com/smilethemy/smilethemy.github.io/2018/01/23/JMS消息队列/" alt="微信分享二维码">
+    </div>
+</div>
+
+<div class="mask js-mask"></div>
+      
+      <div class="clearfix"></div>
+    </div>
   </div>
 </article>
+
   
-    
-    
-    <article class="archive-article archive-type-post">
-  <div class="archive-article-inner">
-    <header class="archive-article-header">
-      	<div class="article-meta">
-	      	<a href="/2018/01/23/JMS消息队列/" class="archive-article-date">
-  	<time datetime="2018-01-22T16:00:00.000Z" itemprop="datePublished"><i class="icon-calendar icon"></i>2018-01-23</time>
-</a>
+<nav id="article-nav">
+  
+    <a href="/2018/01/24/Redis的pub-Sub/" id="article-nav-newer" class="article-nav-link-wrap">
+      <i class="icon-circle-left"></i>
+      <div class="article-nav-title">
+        
+          Redis的pub/Sub
+        
+      </div>
+    </a>
+  
+  
+    <a href="/2018/01/23/Redis并发锁/" id="article-nav-older" class="article-nav-link-wrap">
+      <div class="article-nav-title">Redis并发锁</div>
+      <i class="icon-circle-right"></i>
+    </a>
+  
+</nav>
+
+
+<aside class="wrap-side-operation">
+    <div class="mod-side-operation">
+        
+        <div class="jump-container" id="js-jump-container" style="display:none;">
+            <a href="javascript:void(0)" class="mod-side-operation__jump-to-top">
+                <i class="icon-font icon-back"></i>
+            </a>
+            <div id="js-jump-plan-container" class="jump-plan-container" style="top: -11px;">
+                <i class="icon-font icon-plane jump-plane"></i>
+            </div>
         </div>
-    	 
-  
-    <h1 itemprop="name">
-      <a class="archive-article-title" href="/2018/01/23/JMS消息队列/">JMS消息队列</a>
-    </h1>
-  
-
-        <div class="article-info info-on-right">
-          
-	<div class="article-tag tagcloud">
-		<i class="icon-price-tags icon"></i>
-		<ul class="article-tag-list">
-			 
-        		<li class="article-tag-list-item">
-        			<a href="javascript:void(0)" class="js-tag article-tag-list-link color2">design</a>
-        		</li>
-      		
-		</ul>
-	</div>
-
-          
-	<div class="article-category tagcloud">
-		<i class="icon-book icon"></i>
-		<ul class="article-tag-list">
-			 
-        		<li class="article-tag-list-item">
-        			<a href="/categories/java//" class="article-tag-list-link color5">java</a>
-        		</li>
-      		
-		</ul>
-	</div>
+        
+        
+    </div>
+</aside>
 
 
-        </div>
-        <div class="clearfix"></div>
-    </header>
-  </div>
-</article>
-  
-    
-    
-    <article class="archive-article archive-type-post">
-  <div class="archive-article-inner">
-    <header class="archive-article-header">
-      	<div class="article-meta">
-	      	<a href="/2018/01/23/Redis并发锁/" class="archive-article-date">
-  	<time datetime="2018-01-22T16:00:00.000Z" itemprop="datePublished"><i class="icon-calendar icon"></i>2018-01-23</time>
-</a>
-        </div>
-    	 
-  
-    <h1 itemprop="name">
-      <a class="archive-article-title" href="/2018/01/23/Redis并发锁/">Redis并发锁</a>
-    </h1>
-  
 
-        <div class="article-info info-on-right">
-          
-	<div class="article-tag tagcloud">
-		<i class="icon-price-tags icon"></i>
-		<ul class="article-tag-list">
-			 
-        		<li class="article-tag-list-item">
-        			<a href="javascript:void(0)" class="js-tag article-tag-list-link color2">design</a>
-        		</li>
-      		
-		</ul>
-	</div>
-
-          
-	<div class="article-category tagcloud">
-		<i class="icon-book icon"></i>
-		<ul class="article-tag-list">
-			 
-        		<li class="article-tag-list-item">
-        			<a href="/categories/java//" class="article-tag-list-link color5">java</a>
-        		</li>
-      		
-		</ul>
-	</div>
-
-
-        </div>
-        <div class="clearfix"></div>
-    </header>
-  </div>
-</article>
-  
-    
-    
-    <article class="archive-article archive-type-post">
-  <div class="archive-article-inner">
-    <header class="archive-article-header">
-      	<div class="article-meta">
-	      	<a href="/2018/01/23/Java虚拟机/" class="archive-article-date">
-  	<time datetime="2018-01-22T16:00:00.000Z" itemprop="datePublished"><i class="icon-calendar icon"></i>2018-01-23</time>
-</a>
-        </div>
-    	 
-  
-    <h1 itemprop="name">
-      <a class="archive-article-title" href="/2018/01/23/Java虚拟机/">java虚拟机</a>
-    </h1>
-  
-
-        <div class="article-info info-on-right">
-          
-	<div class="article-tag tagcloud">
-		<i class="icon-price-tags icon"></i>
-		<ul class="article-tag-list">
-			 
-        		<li class="article-tag-list-item">
-        			<a href="javascript:void(0)" class="js-tag article-tag-list-link color2">design</a>
-        		</li>
-      		
-		</ul>
-	</div>
-
-          
-	<div class="article-category tagcloud">
-		<i class="icon-book icon"></i>
-		<ul class="article-tag-list">
-			 
-        		<li class="article-tag-list-item">
-        			<a href="/categories/java//" class="article-tag-list-link color5">java</a>
-        		</li>
-      		
-		</ul>
-	</div>
-
-
-        </div>
-        <div class="clearfix"></div>
-    </header>
-  </div>
-</article>
-  
-    
-    
-    <article class="archive-article archive-type-post">
-  <div class="archive-article-inner">
-    <header class="archive-article-header">
-      	<div class="article-meta">
-	      	<a href="/2018/01/19/SKU多维属性状态判断算法/" class="archive-article-date">
-  	<time datetime="2018-01-18T16:00:00.000Z" itemprop="datePublished"><i class="icon-calendar icon"></i>2018-01-19</time>
-</a>
-        </div>
-    	 
-  
-    <h1 itemprop="name">
-      <a class="archive-article-title" href="/2018/01/19/SKU多维属性状态判断算法/">SKU多维属性状态判断算法</a>
-    </h1>
-  
-
-        <div class="article-info info-on-right">
-          
-	<div class="article-tag tagcloud">
-		<i class="icon-price-tags icon"></i>
-		<ul class="article-tag-list">
-			 
-        		<li class="article-tag-list-item">
-        			<a href="javascript:void(0)" class="js-tag article-tag-list-link color2">design</a>
-        		</li>
-      		
-		</ul>
-	</div>
-
-          
-	<div class="article-category tagcloud">
-		<i class="icon-book icon"></i>
-		<ul class="article-tag-list">
-			 
-        		<li class="article-tag-list-item">
-        			<a href="/categories/java//" class="article-tag-list-link color5">java</a>
-        		</li>
-      		
-		</ul>
-	</div>
-
-
-        </div>
-        <div class="clearfix"></div>
-    </header>
-  </div>
-</article>
-  
-    
-    
-    <article class="archive-article archive-type-post">
-  <div class="archive-article-inner">
-    <header class="archive-article-header">
-      	<div class="article-meta">
-	      	<a href="/2018/01/16/SOA与微服务/" class="archive-article-date">
-  	<time datetime="2018-01-15T16:00:00.000Z" itemprop="datePublished"><i class="icon-calendar icon"></i>2018-01-16</time>
-</a>
-        </div>
-    	 
-  
-    <h1 itemprop="name">
-      <a class="archive-article-title" href="/2018/01/16/SOA与微服务/">SOA与微服务</a>
-    </h1>
-  
-
-        <div class="article-info info-on-right">
-          
-	<div class="article-tag tagcloud">
-		<i class="icon-price-tags icon"></i>
-		<ul class="article-tag-list">
-			 
-        		<li class="article-tag-list-item">
-        			<a href="javascript:void(0)" class="js-tag article-tag-list-link color4">SOA</a>
-        		</li>
-      		
-		</ul>
-	</div>
-
-          
-
-        </div>
-        <div class="clearfix"></div>
-    </header>
-  </div>
-</article>
-  
-    
-    
-    <article class="archive-article archive-type-post">
-  <div class="archive-article-inner">
-    <header class="archive-article-header">
-      	<div class="article-meta">
-	      	<a href="/2018/01/12/springcloud eureka 服务注册与发现 - 副本/" class="archive-article-date">
-  	<time datetime="2018-01-11T16:00:00.000Z" itemprop="datePublished"><i class="icon-calendar icon"></i>2018-01-12</time>
-</a>
-        </div>
-    	 
-  
-    <h1 itemprop="name">
-      <a class="archive-article-title" href="/2018/01/12/springcloud eureka 服务注册与发现 - 副本/">springcloud eureka 服务注册与发现</a>
-    </h1>
-  
-
-        <div class="article-info info-on-right">
-          
-	<div class="article-tag tagcloud">
-		<i class="icon-price-tags icon"></i>
-		<ul class="article-tag-list">
-			 
-        		<li class="article-tag-list-item">
-        			<a href="javascript:void(0)" class="js-tag article-tag-list-link color2">springcloud</a>
-        		</li>
-      		
-		</ul>
-	</div>
-
-          
-	<div class="article-category tagcloud">
-		<i class="icon-book icon"></i>
-		<ul class="article-tag-list">
-			 
-        		<li class="article-tag-list-item">
-        			<a href="/categories/Spring-Boot//" class="article-tag-list-link color2">Spring Boot</a>
-        		</li>
-      		
-		</ul>
-	</div>
-
-
-        </div>
-        <div class="clearfix"></div>
-    </header>
-  </div>
-</article>
-  
-    
-    
-    <article class="archive-article archive-type-post">
-  <div class="archive-article-inner">
-    <header class="archive-article-header">
-      	<div class="article-meta">
-	      	<a href="/2018/01/12/springcloud eureka 服务注册与发现/" class="archive-article-date">
-  	<time datetime="2018-01-11T16:00:00.000Z" itemprop="datePublished"><i class="icon-calendar icon"></i>2018-01-12</time>
-</a>
-        </div>
-    	 
-  
-    <h1 itemprop="name">
-      <a class="archive-article-title" href="/2018/01/12/springcloud eureka 服务注册与发现/">springcloud eureka 服务注册与发现</a>
-    </h1>
-  
-
-        <div class="article-info info-on-right">
-          
-	<div class="article-tag tagcloud">
-		<i class="icon-price-tags icon"></i>
-		<ul class="article-tag-list">
-			 
-        		<li class="article-tag-list-item">
-        			<a href="javascript:void(0)" class="js-tag article-tag-list-link color2">springcloud</a>
-        		</li>
-      		
-		</ul>
-	</div>
-
-          
-	<div class="article-category tagcloud">
-		<i class="icon-book icon"></i>
-		<ul class="article-tag-list">
-			 
-        		<li class="article-tag-list-item">
-        			<a href="/categories/Spring-Boot//" class="article-tag-list-link color2">Spring Boot</a>
-        		</li>
-      		
-		</ul>
-	</div>
-
-
-        </div>
-        <div class="clearfix"></div>
-    </header>
-  </div>
-</article>
-  
-    
-    
-    <article class="archive-article archive-type-post">
-  <div class="archive-article-inner">
-    <header class="archive-article-header">
-      	<div class="article-meta">
-	      	<a href="/2018/01/11/hello-world/" class="archive-article-date">
-  	<time datetime="2018-01-11T07:16:48.602Z" itemprop="datePublished"><i class="icon-calendar icon"></i>2018-01-11</time>
-</a>
-        </div>
-    	 
-  
-    <h1 itemprop="name">
-      <a class="archive-article-title" href="/2018/01/11/hello-world/">Hello World</a>
-    </h1>
-  
-
-        <div class="article-info info-on-right">
-          
-          
-
-        </div>
-        <div class="clearfix"></div>
-    </header>
-  </div>
-</article>
   
   
-    </div></section>
   
 
-    
+  
+
+  
+
+  
 
 
           </div>
@@ -631,8 +490,8 @@
 	var yiliaConfig = {
 		mathjax: true,
 		isHome: false,
-		isPost: false,
-		isArchive: true,
+		isPost: true,
+		isArchive: false,
 		isTag: false,
 		isCategory: false,
 		open_in_new: false,

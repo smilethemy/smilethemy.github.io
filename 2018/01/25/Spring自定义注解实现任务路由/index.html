@@ -6,14 +6,18 @@
   <meta name="renderer" content="webkit">
   <meta http-equiv="X-UA-Compatible" content="IE=edge" >
   <link rel="dns-prefetch" href="https://github.com/smilethemy/smilethemy.github.io">
-  <title>Archives: 2018 | Hexo</title>
+  <title>Spring自定义注解实现任务路由 | Hexo</title>
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
-  <meta property="og:type" content="website">
-<meta property="og:title" content="Hexo">
-<meta property="og:url" content="https://github.com/smilethemy/smilethemy.github.io/archives/2018/index.html">
+  <meta name="description" content="在Spring mvc的开发中，我们可以通过RequestMapping来配，当前方法用于处理哪一个URL的请求.同样我们现在有一个需求，有一个任务调度器，可以按照不同的任务类型路由到不同的任务执行器。其本质就是通过外部参数进行一次路由和Spring mvc做的事情类似。简单看了Spring mvc的实现原理之后，决定使用自定义注解的方式来实现以上功能。 自定义TaskHandler注解 @Tar">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Spring自定义注解实现任务路由">
+<meta property="og:url" content="https://github.com/smilethemy/smilethemy.github.io/2018/01/25/Spring自定义注解实现任务路由/index.html">
 <meta property="og:site_name" content="Hexo">
+<meta property="og:description" content="在Spring mvc的开发中，我们可以通过RequestMapping来配，当前方法用于处理哪一个URL的请求.同样我们现在有一个需求，有一个任务调度器，可以按照不同的任务类型路由到不同的任务执行器。其本质就是通过外部参数进行一次路由和Spring mvc做的事情类似。简单看了Spring mvc的实现原理之后，决定使用自定义注解的方式来实现以上功能。 自定义TaskHandler注解 @Tar">
+<meta property="og:updated_time" content="2018-01-25T09:14:46.000Z">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:title" content="Hexo">
+<meta name="twitter:title" content="Spring自定义注解实现任务路由">
+<meta name="twitter:description" content="在Spring mvc的开发中，我们可以通过RequestMapping来配，当前方法用于处理哪一个URL的请求.同样我们现在有一个需求，有一个任务调度器，可以按照不同的任务类型路由到不同的任务执行器。其本质就是通过外部参数进行一次路由和Spring mvc做的事情类似。简单看了Spring mvc的实现原理之后，决定使用自定义注解的方式来实现以上功能。 自定义TaskHandler注解 @Tar">
   
     <link rel="alternative" href="/atom.xml" title="Hexo" type="application/atom+xml">
   
@@ -147,37 +151,116 @@
             <canvas data-colors="#eaeaea" data-sectionHeight="100" data-contentId="js-content" id="myCanvas1" class="anm-canvas"></canvas>
           </div>
           <div id="js-content" class="content-ll">
-            
+            <article id="post-Spring自定义注解实现任务路由" class="article article-type-post " itemscope itemprop="blogPost">
+  <div class="article-inner">
+    
+      <header class="article-header">
+        
   
+    <h1 class="article-title" itemprop="name">
+      Spring自定义注解实现任务路由
+    </h1>
   
-    
-    
-      
-      
-      <section class="archives-wrap">
-        <div class="archive-year-wrap">
-          <a href="/archives/2018" class="archive-year">2018</a>
-        </div>
-        <div class="archives">
-    
-    <article class="archive-article archive-type-post">
-  <div class="archive-article-inner">
-    <header class="archive-article-header">
-      	<div class="article-meta">
-	      	<a href="/2018/01/25/Spring自定义注解实现任务路由/" class="archive-article-date">
+
+        
+        <a href="/2018/01/25/Spring自定义注解实现任务路由/" class="archive-article-date">
   	<time datetime="2018-01-24T16:00:00.000Z" itemprop="datePublished"><i class="icon-calendar icon"></i>2018-01-25</time>
 </a>
-        </div>
-    	 
-  
-    <h1 itemprop="name">
-      <a class="archive-article-title" href="/2018/01/25/Spring自定义注解实现任务路由/">Spring自定义注解实现任务路由</a>
-    </h1>
-  
+        
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <p>在Spring mvc的开发中，我们可以通过RequestMapping来配，当前方法用于处理哪一个URL的请求.同样我们现在有一个需求，有一个任务调度器，可以按照不同的任务类型路由到不同的任务执行器。其本质就是通过外部参数进行一次路由和Spring mvc做的事情类似。简单看了Spring mvc的实现原理之后，决定使用自定义注解的方式来实现以上功能。</p>
+<p><strong>自定义TaskHandler注解</strong></p>
+<pre><code>@Target({ElementType.TYPE})
+@Retention(RetentionPolicy.RUNTIME)
+@Documented
+@Component
+public @interface TaskHandler {
+  String taskType() default &quot;&quot;;
+}
+</code></pre><p>以上定义了任务处理器的注解，其中@Component表示在spring 启动过程中，会扫描到并且注入到容器中。taskType表示类型。</p>
+<p><strong>任务处理器定义</strong></p>
+<pre><code>public abstract class AbstractTaskHandler {
+  /**
+   * 任务执行器
+   * @param task 任务
+   * @return 执行结果
+   */
+   public abstract BaseResult execute(Task task);
+}
+</code></pre><p>以上定义了一个任务执行的处理器，其他所有的具体的任务执行器继承实现这个方法。其中Task表示任务的定义，包括任务Id，执行任务需要的参数等。</p>
+<p><strong>任务处理器实现</strong></p>
+<p>接下来，我们可以实现一个具体的任务处理器。</p>
+<pre><code>@TaskHandler(taskType = &quot;UserNameChanged&quot;)
+public class UserNameChangedSender extends AbstractTaskHandler {
+  @Override
+  public BaseResult execute(Task task) {
+   return new BaseResult();
+  }
+}
+</code></pre><p>以上我们就实现一个用户名修改通知的任务处理器，具体的业务逻辑这里没有实现。</p>
+<p>其中：@TaskHandler(taskType = “UserNameChanged”)，这里我们指定这个Handler用于处理用户名变更的任务</p>
+<p><strong>任务处理Handler注册</strong></p>
+<pre><code>public class TaskHandlerRegister extends ApplicationObjectSupport {
+  private final static Map&lt;String, AbstractTaskHandler&gt; TASK_HANDLERS_MAP = new HashMap&lt;&gt;();
+  private static final Logger LOGGER = LoggerFactory.getLogger(TaskHandlerRegister.class);
+  @Override
+  protected void initApplicationContext(ApplicationContext context) throws BeansException {
+    super.initApplicationContext(context);
+    Map&lt;String, Object&gt; taskBeanMap = context.getBeansWithAnnotation(TaskHandler.class);
+    taskBeanMap.keySet().forEach(beanName -&gt; {
+      Object bean = taskBeanMap.get(beanName);
+      Class clazz = bean.getClass();
+      if (bean instanceof AbstractTaskHandler &amp;&amp; clazz.getAnnotation(TaskHandler.class) != null) {
+        TaskHandler taskHandler = (TaskHandler) clazz.getAnnotation(TaskHandler.class);
+        String taskType = taskHandler.taskType();
+        if (TASK_HANDLERS_MAP.keySet().contains(taskType)) {
+          throw new RuntimeException(&quot;TaskType has Exits. TaskType=&quot; + taskType);
+        }
+        TASK_HANDLERS_MAP.put(taskHandler.taskType(), (AbstractTaskHandler) taskBeanMap.get(beanName));
+        LOGGER.info(&quot;Task Handler Register. taskType={},beanName={}&quot;, taskHandler.taskType(), beanName);
+      }
+    });
+  }
 
-        <div class="article-info info-on-right">
-          
-          
+  public static AbstractTaskHandler getTaskHandler(String taskType) {
+    return TASK_HANDLERS_MAP.get(taskType);
+  }
+}
+</code></pre><p>这里继承了Spring的ApplicationObjectSupport类，具体的注册过程如下</p>
+<blockquote>
+<p>Spring完成bean的初始化<br>查找spring的容器中，所有带有TaskHandler注解的bean<br>校验bean是否为AbstractTaskHandler类型，获取到taskType<br>把该bean放到TASK_HANDLERS_MAP容器中，即注册完成</p>
+</blockquote>
+<p><strong>任务执行</strong></p>
+<p>接下来我们来看下任务执行</p>
+<pre><code>public class TaskExecutor implements Job {
+  private static final String TASK_TYPE = &quot;taskType&quot;;
+  @Override
+  public BaseResult execute(Task task){
+    String taskType=task.getTaskType();
+    if (TaskHandlerRegister.getTaskHandler(taskType) == null) {
+      throw new RuntimeException(&quot;can&apos;t find taskHandler,taskType=&quot; + taskType);
+    }
+    AbstractTaskHandler abstractHandler = TaskHandlerRegister.getTaskHandler(taskType);
+    return abstractHandler.execute(task);
+  }
+}
+</code></pre><p>这里发起任务执行的是一个Job，具体过程如下</p>
+<blockquote>
+<p>校验该任务类型，有没有在注册中心注册相关Handler<br>从任务注册中心获取到对应的处理的Handelr<br>执行该Handelr</p>
+</blockquote>
+<p>以上过程就完成了，可以实现基于注解的一个任务路由过程。其实现思路来自于Spring mvc的RequestMapping的设计思路</p>
+
+      
+
+      
+    </div>
+    <div class="article-info article-info-index">
+      
+      
+      
 	<div class="article-category tagcloud">
 		<i class="icon-book icon"></i>
 		<ul class="article-tag-list">
@@ -190,425 +273,104 @@
 	</div>
 
 
+      
+
+      
+        
+<div class="share-btn share-icons tooltip-left">
+  <div class="tooltip tooltip-east">
+    <span class="tooltip-item">
+      <a href="javascript:;" class="share-sns share-outer">
+        <i class="icon icon-share"></i>
+      </a>
+    </span>
+    <span class="tooltip-content">
+      <div class="share-wrap">
+        <div class="share-icons">
+          <a class="weibo share-sns" href="javascript:;" data-type="weibo">
+            <i class="icon icon-weibo"></i>
+          </a>
+          <a class="weixin share-sns wxFab" href="javascript:;" data-type="weixin">
+            <i class="icon icon-weixin"></i>
+          </a>
+          <a class="qq share-sns" href="javascript:;" data-type="qq">
+            <i class="icon icon-qq"></i>
+          </a>
+          <a class="douban share-sns" href="javascript:;" data-type="douban">
+            <i class="icon icon-douban"></i>
+          </a>
+          <a class="qzone share-sns" href="javascript:;" data-type="qzone">
+            <i class="icon icon-qzone"></i>
+          </a>
+          <a class="facebook share-sns" href="javascript:;" data-type="facebook">
+            <i class="icon icon-facebook"></i>
+          </a>
+          <a class="twitter share-sns" href="javascript:;" data-type="twitter">
+            <i class="icon icon-twitter"></i>
+          </a>
+          <a class="google share-sns" href="javascript:;" data-type="google">
+            <i class="icon icon-google"></i>
+          </a>
         </div>
-        <div class="clearfix"></div>
-    </header>
+      </div>
+    </span>
+  </div>
+</div>
+
+<div class="page-modal wx-share js-wx-box">
+    <a class="close js-modal-close" href="javascript:;"><i class="icon icon-close"></i></a>
+    <p>扫一扫，分享到微信</p>
+    <div class="wx-qrcode">
+      <img src="//pan.baidu.com/share/qrcode?url=https://github.com/smilethemy/smilethemy.github.io/2018/01/25/Spring自定义注解实现任务路由/" alt="微信分享二维码">
+    </div>
+</div>
+
+<div class="mask js-mask"></div>
+      
+      <div class="clearfix"></div>
+    </div>
   </div>
 </article>
+
   
-    
-    
-    <article class="archive-article archive-type-post">
-  <div class="archive-article-inner">
-    <header class="archive-article-header">
-      	<div class="article-meta">
-	      	<a href="/2018/01/24/Redis的pub-Sub/" class="archive-article-date">
-  	<time datetime="2018-01-23T16:00:00.000Z" itemprop="datePublished"><i class="icon-calendar icon"></i>2018-01-24</time>
-</a>
+<nav id="article-nav">
+  
+  
+    <a href="/2018/01/24/Redis的pub-Sub/" id="article-nav-older" class="article-nav-link-wrap">
+      <div class="article-nav-title">Redis的pub/Sub</div>
+      <i class="icon-circle-right"></i>
+    </a>
+  
+</nav>
+
+
+<aside class="wrap-side-operation">
+    <div class="mod-side-operation">
+        
+        <div class="jump-container" id="js-jump-container" style="display:none;">
+            <a href="javascript:void(0)" class="mod-side-operation__jump-to-top">
+                <i class="icon-font icon-back"></i>
+            </a>
+            <div id="js-jump-plan-container" class="jump-plan-container" style="top: -11px;">
+                <i class="icon-font icon-plane jump-plane"></i>
+            </div>
         </div>
-    	 
-  
-    <h1 itemprop="name">
-      <a class="archive-article-title" href="/2018/01/24/Redis的pub-Sub/">Redis的pub/Sub</a>
-    </h1>
-  
-
-        <div class="article-info info-on-right">
-          
-	<div class="article-tag tagcloud">
-		<i class="icon-price-tags icon"></i>
-		<ul class="article-tag-list">
-			 
-        		<li class="article-tag-list-item">
-        			<a href="javascript:void(0)" class="js-tag article-tag-list-link color2">design</a>
-        		</li>
-      		
-		</ul>
-	</div>
-
-          
-	<div class="article-category tagcloud">
-		<i class="icon-book icon"></i>
-		<ul class="article-tag-list">
-			 
-        		<li class="article-tag-list-item">
-        			<a href="/categories/java//" class="article-tag-list-link color5">java</a>
-        		</li>
-      		
-		</ul>
-	</div>
+        
+        
+    </div>
+</aside>
 
 
-        </div>
-        <div class="clearfix"></div>
-    </header>
-  </div>
-</article>
-  
-    
-    
-    <article class="archive-article archive-type-post">
-  <div class="archive-article-inner">
-    <header class="archive-article-header">
-      	<div class="article-meta">
-	      	<a href="/2018/01/23/JMS消息队列/" class="archive-article-date">
-  	<time datetime="2018-01-22T16:00:00.000Z" itemprop="datePublished"><i class="icon-calendar icon"></i>2018-01-23</time>
-</a>
-        </div>
-    	 
-  
-    <h1 itemprop="name">
-      <a class="archive-article-title" href="/2018/01/23/JMS消息队列/">JMS消息队列</a>
-    </h1>
-  
 
-        <div class="article-info info-on-right">
-          
-	<div class="article-tag tagcloud">
-		<i class="icon-price-tags icon"></i>
-		<ul class="article-tag-list">
-			 
-        		<li class="article-tag-list-item">
-        			<a href="javascript:void(0)" class="js-tag article-tag-list-link color2">design</a>
-        		</li>
-      		
-		</ul>
-	</div>
-
-          
-	<div class="article-category tagcloud">
-		<i class="icon-book icon"></i>
-		<ul class="article-tag-list">
-			 
-        		<li class="article-tag-list-item">
-        			<a href="/categories/java//" class="article-tag-list-link color5">java</a>
-        		</li>
-      		
-		</ul>
-	</div>
-
-
-        </div>
-        <div class="clearfix"></div>
-    </header>
-  </div>
-</article>
-  
-    
-    
-    <article class="archive-article archive-type-post">
-  <div class="archive-article-inner">
-    <header class="archive-article-header">
-      	<div class="article-meta">
-	      	<a href="/2018/01/23/Redis并发锁/" class="archive-article-date">
-  	<time datetime="2018-01-22T16:00:00.000Z" itemprop="datePublished"><i class="icon-calendar icon"></i>2018-01-23</time>
-</a>
-        </div>
-    	 
-  
-    <h1 itemprop="name">
-      <a class="archive-article-title" href="/2018/01/23/Redis并发锁/">Redis并发锁</a>
-    </h1>
-  
-
-        <div class="article-info info-on-right">
-          
-	<div class="article-tag tagcloud">
-		<i class="icon-price-tags icon"></i>
-		<ul class="article-tag-list">
-			 
-        		<li class="article-tag-list-item">
-        			<a href="javascript:void(0)" class="js-tag article-tag-list-link color2">design</a>
-        		</li>
-      		
-		</ul>
-	</div>
-
-          
-	<div class="article-category tagcloud">
-		<i class="icon-book icon"></i>
-		<ul class="article-tag-list">
-			 
-        		<li class="article-tag-list-item">
-        			<a href="/categories/java//" class="article-tag-list-link color5">java</a>
-        		</li>
-      		
-		</ul>
-	</div>
-
-
-        </div>
-        <div class="clearfix"></div>
-    </header>
-  </div>
-</article>
-  
-    
-    
-    <article class="archive-article archive-type-post">
-  <div class="archive-article-inner">
-    <header class="archive-article-header">
-      	<div class="article-meta">
-	      	<a href="/2018/01/23/Java虚拟机/" class="archive-article-date">
-  	<time datetime="2018-01-22T16:00:00.000Z" itemprop="datePublished"><i class="icon-calendar icon"></i>2018-01-23</time>
-</a>
-        </div>
-    	 
-  
-    <h1 itemprop="name">
-      <a class="archive-article-title" href="/2018/01/23/Java虚拟机/">java虚拟机</a>
-    </h1>
-  
-
-        <div class="article-info info-on-right">
-          
-	<div class="article-tag tagcloud">
-		<i class="icon-price-tags icon"></i>
-		<ul class="article-tag-list">
-			 
-        		<li class="article-tag-list-item">
-        			<a href="javascript:void(0)" class="js-tag article-tag-list-link color2">design</a>
-        		</li>
-      		
-		</ul>
-	</div>
-
-          
-	<div class="article-category tagcloud">
-		<i class="icon-book icon"></i>
-		<ul class="article-tag-list">
-			 
-        		<li class="article-tag-list-item">
-        			<a href="/categories/java//" class="article-tag-list-link color5">java</a>
-        		</li>
-      		
-		</ul>
-	</div>
-
-
-        </div>
-        <div class="clearfix"></div>
-    </header>
-  </div>
-</article>
-  
-    
-    
-    <article class="archive-article archive-type-post">
-  <div class="archive-article-inner">
-    <header class="archive-article-header">
-      	<div class="article-meta">
-	      	<a href="/2018/01/19/SKU多维属性状态判断算法/" class="archive-article-date">
-  	<time datetime="2018-01-18T16:00:00.000Z" itemprop="datePublished"><i class="icon-calendar icon"></i>2018-01-19</time>
-</a>
-        </div>
-    	 
-  
-    <h1 itemprop="name">
-      <a class="archive-article-title" href="/2018/01/19/SKU多维属性状态判断算法/">SKU多维属性状态判断算法</a>
-    </h1>
-  
-
-        <div class="article-info info-on-right">
-          
-	<div class="article-tag tagcloud">
-		<i class="icon-price-tags icon"></i>
-		<ul class="article-tag-list">
-			 
-        		<li class="article-tag-list-item">
-        			<a href="javascript:void(0)" class="js-tag article-tag-list-link color2">design</a>
-        		</li>
-      		
-		</ul>
-	</div>
-
-          
-	<div class="article-category tagcloud">
-		<i class="icon-book icon"></i>
-		<ul class="article-tag-list">
-			 
-        		<li class="article-tag-list-item">
-        			<a href="/categories/java//" class="article-tag-list-link color5">java</a>
-        		</li>
-      		
-		</ul>
-	</div>
-
-
-        </div>
-        <div class="clearfix"></div>
-    </header>
-  </div>
-</article>
-  
-    
-    
-    <article class="archive-article archive-type-post">
-  <div class="archive-article-inner">
-    <header class="archive-article-header">
-      	<div class="article-meta">
-	      	<a href="/2018/01/16/SOA与微服务/" class="archive-article-date">
-  	<time datetime="2018-01-15T16:00:00.000Z" itemprop="datePublished"><i class="icon-calendar icon"></i>2018-01-16</time>
-</a>
-        </div>
-    	 
-  
-    <h1 itemprop="name">
-      <a class="archive-article-title" href="/2018/01/16/SOA与微服务/">SOA与微服务</a>
-    </h1>
-  
-
-        <div class="article-info info-on-right">
-          
-	<div class="article-tag tagcloud">
-		<i class="icon-price-tags icon"></i>
-		<ul class="article-tag-list">
-			 
-        		<li class="article-tag-list-item">
-        			<a href="javascript:void(0)" class="js-tag article-tag-list-link color4">SOA</a>
-        		</li>
-      		
-		</ul>
-	</div>
-
-          
-
-        </div>
-        <div class="clearfix"></div>
-    </header>
-  </div>
-</article>
-  
-    
-    
-    <article class="archive-article archive-type-post">
-  <div class="archive-article-inner">
-    <header class="archive-article-header">
-      	<div class="article-meta">
-	      	<a href="/2018/01/12/springcloud eureka 服务注册与发现 - 副本/" class="archive-article-date">
-  	<time datetime="2018-01-11T16:00:00.000Z" itemprop="datePublished"><i class="icon-calendar icon"></i>2018-01-12</time>
-</a>
-        </div>
-    	 
-  
-    <h1 itemprop="name">
-      <a class="archive-article-title" href="/2018/01/12/springcloud eureka 服务注册与发现 - 副本/">springcloud eureka 服务注册与发现</a>
-    </h1>
-  
-
-        <div class="article-info info-on-right">
-          
-	<div class="article-tag tagcloud">
-		<i class="icon-price-tags icon"></i>
-		<ul class="article-tag-list">
-			 
-        		<li class="article-tag-list-item">
-        			<a href="javascript:void(0)" class="js-tag article-tag-list-link color2">springcloud</a>
-        		</li>
-      		
-		</ul>
-	</div>
-
-          
-	<div class="article-category tagcloud">
-		<i class="icon-book icon"></i>
-		<ul class="article-tag-list">
-			 
-        		<li class="article-tag-list-item">
-        			<a href="/categories/Spring-Boot//" class="article-tag-list-link color2">Spring Boot</a>
-        		</li>
-      		
-		</ul>
-	</div>
-
-
-        </div>
-        <div class="clearfix"></div>
-    </header>
-  </div>
-</article>
-  
-    
-    
-    <article class="archive-article archive-type-post">
-  <div class="archive-article-inner">
-    <header class="archive-article-header">
-      	<div class="article-meta">
-	      	<a href="/2018/01/12/springcloud eureka 服务注册与发现/" class="archive-article-date">
-  	<time datetime="2018-01-11T16:00:00.000Z" itemprop="datePublished"><i class="icon-calendar icon"></i>2018-01-12</time>
-</a>
-        </div>
-    	 
-  
-    <h1 itemprop="name">
-      <a class="archive-article-title" href="/2018/01/12/springcloud eureka 服务注册与发现/">springcloud eureka 服务注册与发现</a>
-    </h1>
-  
-
-        <div class="article-info info-on-right">
-          
-	<div class="article-tag tagcloud">
-		<i class="icon-price-tags icon"></i>
-		<ul class="article-tag-list">
-			 
-        		<li class="article-tag-list-item">
-        			<a href="javascript:void(0)" class="js-tag article-tag-list-link color2">springcloud</a>
-        		</li>
-      		
-		</ul>
-	</div>
-
-          
-	<div class="article-category tagcloud">
-		<i class="icon-book icon"></i>
-		<ul class="article-tag-list">
-			 
-        		<li class="article-tag-list-item">
-        			<a href="/categories/Spring-Boot//" class="article-tag-list-link color2">Spring Boot</a>
-        		</li>
-      		
-		</ul>
-	</div>
-
-
-        </div>
-        <div class="clearfix"></div>
-    </header>
-  </div>
-</article>
-  
-    
-    
-    <article class="archive-article archive-type-post">
-  <div class="archive-article-inner">
-    <header class="archive-article-header">
-      	<div class="article-meta">
-	      	<a href="/2018/01/11/hello-world/" class="archive-article-date">
-  	<time datetime="2018-01-11T07:16:48.602Z" itemprop="datePublished"><i class="icon-calendar icon"></i>2018-01-11</time>
-</a>
-        </div>
-    	 
-  
-    <h1 itemprop="name">
-      <a class="archive-article-title" href="/2018/01/11/hello-world/">Hello World</a>
-    </h1>
-  
-
-        <div class="article-info info-on-right">
-          
-          
-
-        </div>
-        <div class="clearfix"></div>
-    </header>
-  </div>
-</article>
   
   
-    </div></section>
   
 
-    
+  
+
+  
+
+  
 
 
           </div>
@@ -631,8 +393,8 @@
 	var yiliaConfig = {
 		mathjax: true,
 		isHome: false,
-		isPost: false,
-		isArchive: true,
+		isPost: true,
+		isArchive: false,
 		isTag: false,
 		isCategory: false,
 		open_in_new: false,
